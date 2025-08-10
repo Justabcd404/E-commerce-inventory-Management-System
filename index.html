@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Simple E-Commerce</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: auto; }
+    .product { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; }
+    .cart-item { margin-bottom: 10px; }
+    button { padding: 5px 10px; }
+    #cart { margin-top: 20px; border-top: 2px solid #333; padding-top: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Simple E-Commerce Store</h1>
+  <div id="products"></div>
+
+  <h2>Shopping Cart</h2>
+  <div id="cart"></div>
+  <button id="checkoutBtn">Checkout</button>
+
+  <script>
+    let products = [];
+    let cart = {};
+
+    // Fetch products from server
+    fetch('/api/products')
+      .then(res => res.json())
+      .then(data => {
+        products = data;
+        renderProducts();
+      });
+
+    function renderProducts() {
+      const productsDiv = document.getElementById('products');
+      productsDiv.innerHTML = '';
+      products.forEach(p => {
+        const productDiv = document.createElement('div');
+        productDiv.className = 'product';
+        productDiv.innerHTML = `
+          <strong>${p.name}</strong><br>
+          Price: $${p.price}<br>
+          <button onclick="addToCart(${p.id})">Add to Cart</button>
+        `;
+        productsDiv.appendChild(productDiv);
+      });
+    }
+
+    function addToCart(productId) {
+      cart[productId] = (cart[productId] || 0) + 1;
+      renderCart();
+    }
+
+    function renderCart() {
+      const cartDiv = document.getElementById('cart');
+      cartDiv.innerHTML = '';
+
+      if (Object.keys(cart).length === 0) {
+        cartDiv.textContent = 'Cart is empty';
+        return;
+      }
+
+      let total = 0;
+      for (const id in cart) {
+        const product = products.find(p => p.id == id);
+        const quantity = cart[id];
+        const lineTotal = product.price * quantity;
+        total += lineTotal;
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'cart-item';
+        itemDiv.textContent = `${product.name} x ${quantity} = $${lineTotal}`;
+        cartDiv.appendChild(itemDiv);
+      }
+
+      const totalDiv = document.createElement('div');
+      totalDiv.style.fontWeight = 'bold';
+      totalDiv.textContent = `Total: $${total}`;
+      cartDiv.appendChild(totalDiv);
+    }
+
+    document.getElementById('checkoutBtn').addEventListener('click', () => {
+      if (Object.keys(cart).length === 0) {
+        alert('Your cart is empty!');
+        return;
+      }
+      // For simplicity, just send the cart as an order
+      fetch('/api/order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cart })
+      })
+      .then(res => res.json())
+      .then(data => {
+        alert(data.message);
+        cart = {};
+        renderCart();
+      });
+    });
+  </script>
+</body>
+</html>
